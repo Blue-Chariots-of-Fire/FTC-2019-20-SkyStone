@@ -86,7 +86,7 @@ public class TestLinearOpMode extends LinearOpMode {
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
 
-            // Setup a variable for each drive wheel to save power level for telemetry
+            // Setup a variable for each drive wheel
             double frontLeftPower;
             double frontRightPower;
             double backLeftPower;
