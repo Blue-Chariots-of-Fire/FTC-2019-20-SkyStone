@@ -56,60 +56,33 @@ import com.qualcomm.robotcore.util.Range;
 public class TestLinearOpMode extends LinearOpMode {
 
     // Declare OpMode members.
-    private ElapsedTime runtime = new ElapsedTime();
-    private DcMotor frontLeft = null;
-    private DcMotor frontRight = null;
-    private DcMotor backLeft = null;
-    private DcMotor backRight = null;
+
     public void runOpMode() {
+        //Declare rob as a Robert object defined in the Robert class
+        Robert rob = new Robert ();
+
+        //show that rob is initialized
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
-        // Initialize the hardware variables.
-        frontLeft  = hardwareMap.get(DcMotor.class, "frontLeft");
-        frontRight = hardwareMap.get(DcMotor.class, "frontRight");
-        backLeft = hardwareMap.get(DcMotor.class, "backLeft");
-        backRight = hardwareMap.get(DcMotor.class, "backRight");
-
-
-        // Most robots need the motor on one side to be reversed to drive forward
-        // Reverse the motor that runs backwards when connected directly to the battery
-        frontLeft.setDirection(DcMotor.Direction.FORWARD);
-        frontRight.setDirection(DcMotor.Direction.REVERSE);
-        backLeft.setDirection(DcMotor.Direction.FORWARD);
-        backRight.setDirection(DcMotor.Direction.REVERSE);
-
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
-        runtime.reset();
+        rob.resetTime();
 
         // run until the end of the match (driver presses STOP)
-        while (opModeIsActive()) {
-
-            // Setup a variable for each drive wheel
-            double frontLeftPower;
-            double frontRightPower;
-            double backLeftPower;
-            double backRightPower;
-
-            double drive = -gamepad1.left_stick_y;
-            double turn  =  gamepad1.right_stick_x;
-            double strafe = gamepad1.left_stick_x;
-            frontLeftPower = Range.clip((drive-turn+strafe), -1.0, 1.0);
-            frontRightPower = Range.clip((drive+turn-strafe), -1.0, 1.0);
-            backLeftPower = Range.clip((drive-turn-strafe), -1.0, 1.0);
-            backRightPower = Range.clip((drive+turn+strafe), -1.0, 1.0);
-
-            // Send calculated power to wheels
-            frontLeft.setPower(frontLeftPower);
-            frontRight.setPower(frontRightPower);
-            backRight.setPower(backRightPower);
-            backLeft.setPower(backLeftPower);
-
-            // Show the elapsed game time and wheel power.
-            telemetry.addData("Status", "Run Time: " + runtime.toString());
-            telemetry.addData("Motors", "left (%.2f), right (%.2f)", frontLeftPower, frontRightPower);
-            telemetry.update();
+        while (opModeIsActive())
+        {
+            rob.drive();
+            rob.perform();
+            addTelemetry(rob);
         }
+    }
+
+    private void addTelemetry (Robert rob)
+    {
+        // Show the elapsed game time and wheel power.
+        telemetry.addData("Status", "Run Time: " + rob.getRuntimeAsString());
+        telemetry.addData("Motors", "left (%.2f), right (%.2f)", rob.getFrontLeftPower(), rob.getBackLeftPower());
+        telemetry.update();
     }
 }
