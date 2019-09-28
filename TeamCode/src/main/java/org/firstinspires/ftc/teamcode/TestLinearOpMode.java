@@ -93,7 +93,7 @@ public class TestLinearOpMode extends LinearOpMode {
             double backRightPower;
 
             double drive = -gamepad1.left_stick_y;
-            double turn  =  gamepad1.right_stick_x;
+            double turn  =  -gamepad1.right_stick_x;
             double strafe = gamepad1.left_stick_x;
             frontLeftPower = Range.clip((drive-turn+strafe), -1.0, 1.0);
             frontRightPower = Range.clip((drive+turn-strafe), -1.0, 1.0);
