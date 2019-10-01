@@ -61,6 +61,21 @@ public class TestLinearOpMode extends LinearOpMode {
     private DcMotor frontRight = null;
     private DcMotor backLeft = null;
     private DcMotor backRight = null;
+
+    //slowMode boolean
+    private boolean slowMode = false;
+
+    // Setup a variable for each drive wheel
+    private double frontLeftPower;
+    private double frontRightPower;
+    private double backLeftPower;
+    private double backRightPower;
+
+    //variable for the controllers
+    private double turn;
+    private double drive;
+    private double strafe;
+
     public void runOpMode() {
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -70,7 +85,6 @@ public class TestLinearOpMode extends LinearOpMode {
         frontRight = hardwareMap.get(DcMotor.class, "frontRight");
         backLeft = hardwareMap.get(DcMotor.class, "backLeft");
         backRight = hardwareMap.get(DcMotor.class, "backRight");
-
 
         // Most robots need the motor on one side to be reversed to drive forward
         // Reverse the motor that runs backwards when connected directly to the battery
@@ -86,30 +100,60 @@ public class TestLinearOpMode extends LinearOpMode {
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
 
-            // Setup a variable for each drive wheel
-            double frontLeftPower;
-            double frontRightPower;
-            double backLeftPower;
-            double backRightPower;
+            checkSlowMode();
+            move();
+            telemetry();
+        }
+    }
 
-            double drive = -gamepad1.left_stick_y;
-            double turn  =  -gamepad1.right_stick_x;
-            double strafe = gamepad1.left_stick_x;
+    //checks if the robot is on slow mode and changes the mode
+    private void checkSlowMode()
+    {
+        if (gamepad1.a)
+        {
+            slowMode = true;
+        }
+        if (gamepad1.b)
+        {
+            slowMode = false;
+        }
+    }
+
+    //moves the robot for one hardware cycle
+    private void move ()
+    {
+        drive = -gamepad1.left_stick_y;
+        turn  =  -gamepad1.right_stick_x;
+        strafe = gamepad1.left_stick_x;
+
+        if (!slowMode)
+        {
             frontLeftPower = Range.clip((drive-turn+strafe), -1.0, 1.0);
             frontRightPower = Range.clip((drive+turn-strafe), -1.0, 1.0);
             backLeftPower = Range.clip((drive-turn-strafe), -1.0, 1.0);
             backRightPower = Range.clip((drive+turn+strafe), -1.0, 1.0);
-
-            // Send calculated power to wheels
-            frontLeft.setPower(frontLeftPower);
-            frontRight.setPower(frontRightPower);
-            backRight.setPower(backRightPower);
-            backLeft.setPower(backLeftPower);
-
-            // Show the elapsed game time and wheel power.
-            telemetry.addData("Status", "Run Time: " + runtime.toString());
-            telemetry.addData("Motors", "left (%.2f), right (%.2f)", frontLeftPower, frontRightPower);
-            telemetry.update();
         }
+        if (slowMode)
+        {
+            frontLeftPower = (drive-turn+strafe)/3;
+            frontRightPower = (drive+turn-strafe)/3;
+            backLeftPower = (drive-turn-strafe)/3;
+            backRightPower = (drive+turn+strafe)/3;
+        }
+
+        // Send calculated power to wheels
+        frontLeft.setPower(frontLeftPower);
+        frontRight.setPower(frontRightPower);
+        backRight.setPower(backRightPower);
+        backLeft.setPower(backLeftPower);
+    }
+
+    //adds telemetry info to the driver station
+    private void telemetry ()
+    {
+        // Show the elapsed game time and wheel power.
+        telemetry.addData("Status", "Run Time: " + runtime.toString());
+        telemetry.addData("Motors", "left (%.2f), right (%.2f)", frontLeftPower, frontRightPower);
+        telemetry.update();
     }
 }
