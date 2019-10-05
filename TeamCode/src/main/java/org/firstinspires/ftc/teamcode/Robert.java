@@ -23,14 +23,13 @@ public class Robert extends OpMode
     private double turn;
     private double strafe;
 
-    //constructor
-    public Robert ()
+    public void init ()
     {
         // Initialize the hardware variables.
-        this.frontLeft  = hardwareMap.get(DcMotor.class, "frontLeft");
-        this.frontRight = hardwareMap.get(DcMotor.class, "frontRight");
-        this.backLeft = hardwareMap.get(DcMotor.class, "backLeft");
-        this.backRight = hardwareMap.get(DcMotor.class, "backRight");
+        frontLeft  = hardwareMap.get(DcMotor.class, "frontLeft");
+        frontRight = hardwareMap.get(DcMotor.class, "frontRight");
+        backLeft = hardwareMap.get(DcMotor.class, "backLeft");
+        backRight = hardwareMap.get(DcMotor.class, "backRight");
 
         //Reverse motors that are positioned backwards
         frontLeft.setDirection(DcMotor.Direction.FORWARD);
@@ -39,15 +38,23 @@ public class Robert extends OpMode
         backRight.setDirection(DcMotor.Direction.REVERSE);
     }
 
+
+    //constructor
+    public Robert ()
+    {
+
+    }
+
     public void resetTime ()
     {
         runtime.reset();
     }
 
-    public void drive ()
+    public void drive()
     {
+        //set movement variables from joysticks
         drive = -gamepad1.left_stick_y;
-        turn =  gamepad1.right_stick_x;
+        turn  =  -gamepad1.right_stick_x;
         strafe = gamepad1.left_stick_x;
 
         //sets drive wheel variables to their desired things
@@ -92,11 +99,6 @@ public class Robert extends OpMode
     }
 
     //abstract
-    public void init ()
-    {
-
-    }
-
     public void loop ()
     {
 
