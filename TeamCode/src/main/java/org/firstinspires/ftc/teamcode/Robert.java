@@ -38,7 +38,6 @@ public class Robert extends OpMode
         backRight.setDirection(DcMotor.Direction.REVERSE);
     }
 
-
     //constructor
     public Robert ()
     {
