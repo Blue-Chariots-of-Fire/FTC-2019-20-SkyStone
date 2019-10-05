@@ -56,10 +56,10 @@ import com.qualcomm.robotcore.util.Range;
 public class TestLinearOpMode extends LinearOpMode {
 
     // Declare OpMode members.
+    //Declare rob as a Robert object defined in the Robert class
+    Robert rob = new Robert ();
 
     public void runOpMode() {
-        //Declare rob as a Robert object defined in the Robert class
-        Robert rob = new Robert ();
 
         //show that rob is initialized
         telemetry.addData("Status", "Initialized");
