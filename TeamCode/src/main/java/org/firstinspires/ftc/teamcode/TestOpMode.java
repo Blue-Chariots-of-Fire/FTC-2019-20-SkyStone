@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.robot.Robot;
 @TeleOp(name="TestOpMode", group="Linear Opmode")
 public class TestOpMode extends OpMode
 {
-    Robert rob = new Robert ();
+    Robert rob = new Robert (hardwareMap, gamepad1, gamepad2);
 
     @Override
     public void init()

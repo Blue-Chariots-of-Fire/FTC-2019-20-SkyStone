@@ -5,10 +5,13 @@ import com.qualcomm.robotcore.hardware.*;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
-public class Robert extends OpMode
+public class Robert
 {
     //members
     private ElapsedTime runtime = new ElapsedTime();
+    private HardwareMap hwMap;
+    private Gamepad gp1;
+    private Gamepad gp2;
     private DcMotor frontLeft;
     private DcMotor frontRight;
     private DcMotor backLeft;
@@ -26,10 +29,10 @@ public class Robert extends OpMode
     public void init ()
     {
         // Initialize the hardware variables.
-        frontLeft  = hardwareMap.get(DcMotor.class, "frontLeft");
-        frontRight = hardwareMap.get(DcMotor.class, "frontRight");
-        backLeft = hardwareMap.get(DcMotor.class, "backLeft");
-        backRight = hardwareMap.get(DcMotor.class, "backRight");
+        frontLeft  = hwMap.get(DcMotor.class, "frontLeft");
+        frontRight = hwMap.get(DcMotor.class, "frontRight");
+        backLeft = hwMap.get(DcMotor.class, "backLeft");
+        backRight = hwMap.get(DcMotor.class, "backRight");
 
         //Reverse motors that are positioned backwards
         frontLeft.setDirection(DcMotor.Direction.FORWARD);
@@ -39,9 +42,11 @@ public class Robert extends OpMode
     }
 
     //constructor
-    public Robert ()
+    public Robert (HardwareMap hardwareMap, Gamepad gamepad1, Gamepad gamepad2)
     {
-
+        hwMap = hardwareMap;
+        gp1 = gamepad1;
+        gp2 = gamepad2;
     }
 
     public void resetTime ()
@@ -52,9 +57,9 @@ public class Robert extends OpMode
     public void drive()
     {
         //set movement variables from joysticks
-        drive = -gamepad1.left_stick_y;
-        turn  =  -gamepad1.right_stick_x;
-        strafe = gamepad1.left_stick_x;
+        drive = -gp1.left_stick_y;
+        turn  =  -gp1.right_stick_x;
+        strafe = gp1.left_stick_x;
 
         //sets drive wheel variables to their desired things
         frontLeftPower = Range.clip((drive-turn+strafe), -1.0, 1.0);
