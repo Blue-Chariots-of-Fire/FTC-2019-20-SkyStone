@@ -18,26 +18,16 @@ public class Robert extends OpMode
     private double frontRightPower;
     private double backLeftPower;
     private double backRightPower;
-    //variable for each mode of movement
-    private double drive = -gamepad1.left_stick_y;
-    private double turn  =  gamepad1.right_stick_x;
-    private double strafe = gamepad1.left_stick_x;
+
+    //variables for driving
+    private double drive;
+    private double turn;
+    private double strafe;
 
     //constructor
     public Robert ()
     {
-        // Initialize the hardware variables.
-        frontLeft  = hardwareMap.get(DcMotor.class, "frontLeft");
-        frontRight = hardwareMap.get(DcMotor.class, "frontRight");
-        backLeft = hardwareMap.get(DcMotor.class, "backLeft");
-        backRight = hardwareMap.get(DcMotor.class, "backRight");
 
-
-        //Reverse motors that are positioned backwards
-        frontLeft.setDirection(DcMotor.Direction.FORWARD);
-        frontRight.setDirection(DcMotor.Direction.REVERSE);
-        backLeft.setDirection(DcMotor.Direction.FORWARD);
-        backRight.setDirection(DcMotor.Direction.REVERSE);
     }
 
     public void resetTime ()
@@ -69,7 +59,8 @@ public class Robert extends OpMode
         return runtime.toString();
     }
 
-    public double getBackLeftPower() {
+    public double getBackLeftPower()
+    {
         return backLeftPower;
     }
 
@@ -91,11 +82,25 @@ public class Robert extends OpMode
     //abstract
     public void init ()
     {
+        // Initialize the hardware variables.
+        frontLeft  = hardwareMap.get(DcMotor.class, "frontLeft");
+        frontRight = hardwareMap.get(DcMotor.class, "frontRight");
+        backLeft = hardwareMap.get(DcMotor.class, "backLeft");
+        backRight = hardwareMap.get(DcMotor.class, "backRight");
 
+
+        //Reverse motors that are positioned backwards
+        frontLeft.setDirection(DcMotor.Direction.FORWARD);
+        frontRight.setDirection(DcMotor.Direction.REVERSE);
+        backLeft.setDirection(DcMotor.Direction.FORWARD);
+        backRight.setDirection(DcMotor.Direction.REVERSE);
     }
 
     public void loop ()
     {
-
+        //variable for each mode of movement
+        drive = -gamepad1.left_stick_y;
+        turn  =  -gamepad1.right_stick_x;
+        strafe = gamepad1.left_stick_x;
     }
 }
