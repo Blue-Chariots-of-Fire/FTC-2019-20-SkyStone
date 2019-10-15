@@ -29,11 +29,10 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
@@ -42,19 +41,29 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 
 
-@TeleOp(name="TestTeleOpMode", group="Linear Opmode")
+/**
+ * This file contains an minimal example of a Linear "OpMode". An OpMode is a 'program' that runs in either
+ * the autonomous or the teleop period of an FTC match. The names of OpModes appear on the menu
+ * of the FTC Driver Station. When an selection is made from the menu, the corresponding OpMode
+ * class is instantiated on the Robot Controller and executed.
+ *
+ * This particular OpMode just executes a basic Tank Drive Teleop for a two wheeled robot
+ * It includes all the skeletal structure that all linear OpModes contain.
+ *
+ * Use Android Studios to Copy this Class, and Paste it into your team's code folder with a new name.
+ * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
+ */
 
-public class TestLinearOpMode extends LinearOpMode {
+@Autonomous(name="TestAutoOpMode", group="Linear OpMode")
+
+public class TestAutonomous extends LinearOpMode {
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
     private DcMotor frontLeft = null;
     private DcMotor frontRight = null;
     private DcMotor backLeft = null;
     private DcMotor backRight = null;
-    private DcMotor intakeLeft = null;
-    private DcMotor intakeRight = null;
 
-    /*
     //skystone names for object detection
     private static final String TFOD_MODEL_ASSET = "Skystone.tflite";
     private static final String LABEL_FIRST_ELEMENT = "Stone";
@@ -68,37 +77,27 @@ public class TestLinearOpMode extends LinearOpMode {
                     + "+/t1td//GBks5RPXDzwE6ODGSndTdkW1dr5U6ZE25niSN3Mz4fJRx4uRtNRCd41ZG9U72qDAWr";
     private VuforiaLocalizer vuforia;
     private TFObjectDetector tfod;
-    */
-
-    //slowMode boolean
-    private boolean slowMode = false;
-    private boolean intake = false;
-    private boolean intakeReverse = false;
 
     // Setup a variable for each drive wheel
-    private double frontLeftPower;
-    private double frontRightPower;
-    private double backLeftPower;
-    private double backRightPower;
-    private double intakePower;
+    private double frontLeftPower = 0;
+    private double frontRightPower = 0;
+    private double backLeftPower = 0;
+    private double backRightPower = 0;
 
     //variable for the controllers
-    private double turn;
-    private double drive;
-    private double strafe;
-
+    private double turn = 0;
+    private double drive = 0;
+    private double strafe = 0;
 
     public void runOpMode()
     {
-        //initVuforia(); //initializes vuforia
+        initVuforia(); //initializes vuforia
 
-        /*
         if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
             initTfod();
         } else {
             telemetry.addData("Sorry!", "This device is not compatible with TFOD");
         }
-        */
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -108,8 +107,6 @@ public class TestLinearOpMode extends LinearOpMode {
         frontRight = hardwareMap.get(DcMotor.class, "frontRight");
         backLeft = hardwareMap.get(DcMotor.class, "backLeft");
         backRight = hardwareMap.get(DcMotor.class, "backRight");
-        intakeLeft = hardwareMap.get(DcMotor.class, "intakeLeft");
-        intakeRight = hardwareMap.get (DcMotor.class, "intakeRight");
 
         // Most robots need the motor on one side to be reversed to drive forward
         // Reverse the motor that runs backwards when connected directly to the battery
@@ -117,123 +114,33 @@ public class TestLinearOpMode extends LinearOpMode {
         frontRight.setDirection(DcMotor.Direction.REVERSE);
         backLeft.setDirection(DcMotor.Direction.FORWARD);
         backRight.setDirection(DcMotor.Direction.REVERSE);
-        intakeLeft.setDirection(DcMotor.Direction.FORWARD);
-        intakeRight.setDirection(DcMotor.Direction.REVERSE);
 
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
         runtime.reset();
 
         // run until the end of the match (driver presses STOP)
-        while (opModeIsActive())
-        {
-            checkIntake();
-            checkSlowMode();
+        while (opModeIsActive()) {
+
             move();
             telemetry();
-        }
-    }
-
-    //checks if the robot is on slow mode and changes the mode
-    private void checkSlowMode()
-    {
-        if (gamepad1.a)
-        {
-            if (slowMode == true)
-            {
-                slowMode = false;
-            }
-            else
-            {
-                slowMode = true;
-            }
-        }
-    }
-
-    private void checkIntake ()
-    {
-        if (gamepad1.b)
-        {
-            if (intakeReverse == true)
-            {
-                intakeReverse = false;
-            }
-
-            if (intake == true)
-            {
-                intake = false;
-            }
-            else
-            {
-                intake = true;
-            }
-        }
-
-        if (gamepad1.y)
-        {
-            if (intake == true)
-            {
-                intake = false;
-            }
-
-            if (intakeReverse == true)
-            {
-                intakeReverse = false;
-            }
-            else
-            {
-                intakeReverse = true;
-            }
         }
     }
 
     //moves the robot for one hardware cycle
     private void move ()
     {
-        drive = -gamepad1.left_stick_y;
-        turn  =  -gamepad1.right_stick_x;
-        strafe = gamepad1.left_stick_x;
+        //sets the variable things
+        frontLeftPower = Range.clip((drive-turn+strafe), -1.0, 1.0);
+        frontRightPower = Range.clip((drive+turn-strafe), -1.0, 1.0);
+        backLeftPower = Range.clip((drive-turn-strafe), -1.0, 1.0);
+        backRightPower = Range.clip((drive+turn+strafe), -1.0, 1.0);
 
-        if (slowMode)
-        {
-            frontLeftPower = Range.clip((drive-turn+strafe), -1.0, 1.0);
-            frontRightPower = Range.clip((drive+turn-strafe), -1.0, 1.0);
-            backLeftPower = Range.clip((drive-turn-strafe), -1.0, 1.0);
-            backRightPower = Range.clip((drive+turn+strafe), -1.0, 1.0);
-        }
-        if (!slowMode)
-        {
-            frontLeftPower = (drive-turn+strafe)/3;
-            frontRightPower = (drive+turn-strafe)/3;
-            backLeftPower = (drive-turn-strafe)/3;
-            backRightPower = (drive+turn+strafe)/3;
-        }
-
-        if (intake)
-        {
-            intakePower = 1.0;
-        }
-        else
-        {
-            intakePower = 0.0;
-        }
-
-        if (intakeReverse)
-        {
-            intakePower = -1.0;
-        }
-        else
-        {
-            intakePower = 0.0;
-        }
-
-        // Send calculated power to motors
+        // Send calculated power to wheels
         frontLeft.setPower(frontLeftPower);
         frontRight.setPower(frontRightPower);
         backRight.setPower(backRightPower);
         backLeft.setPower(backLeftPower);
-        intakeLeft.setPower(intakePower);
-        intakeRight.setPower(intakePower);
     }
 
     //adds telemetry info to the driver station
@@ -245,12 +152,11 @@ public class TestLinearOpMode extends LinearOpMode {
         telemetry.update();
     }
 
-    /*
     //initializes vuforia localization engine
     private void initVuforia() {
-        //
-        // Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
-        //
+        /*
+         * Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
+         */
         VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
 
         parameters.vuforiaLicenseKey = VUFORIA_KEY;
@@ -271,6 +177,4 @@ public class TestLinearOpMode extends LinearOpMode {
         tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
         tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT, LABEL_SECOND_ELEMENT);
     }
-    */
-
 }
