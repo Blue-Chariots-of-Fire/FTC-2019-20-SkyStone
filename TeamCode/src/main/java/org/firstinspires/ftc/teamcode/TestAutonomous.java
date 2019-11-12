@@ -120,36 +120,10 @@ public class TestAutonomous extends LinearOpMode {
         runtime.reset();
 
         // run until the end of the match (driver presses STOP)
-        while (opModeIsActive()) {
+        while (opModeIsActive())
+        {
 
-            move();
-            telemetry();
         }
-    }
-
-    //moves the robot for one hardware cycle
-    private void move ()
-    {
-        //sets the variable things
-        frontLeftPower = Range.clip((drive-turn+strafe), -1.0, 1.0);
-        frontRightPower = Range.clip((drive+turn-strafe), -1.0, 1.0);
-        backLeftPower = Range.clip((drive-turn-strafe), -1.0, 1.0);
-        backRightPower = Range.clip((drive+turn+strafe), -1.0, 1.0);
-
-        // Send calculated power to wheels
-        frontLeft.setPower(frontLeftPower);
-        frontRight.setPower(frontRightPower);
-        backRight.setPower(backRightPower);
-        backLeft.setPower(backLeftPower);
-    }
-
-    //adds telemetry info to the driver station
-    private void telemetry ()
-    {
-        // Show the elapsed game time and wheel power.
-        telemetry.addData("Status", "Run Time: " + runtime.toString());
-        telemetry.addData("Motors", "left (%.2f), right (%.2f)", frontLeftPower, frontRightPower);
-        telemetry.update();
     }
 
     //initializes vuforia localization engine
