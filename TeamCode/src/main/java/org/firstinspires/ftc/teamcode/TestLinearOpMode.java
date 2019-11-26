@@ -29,12 +29,17 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
+
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 
 @TeleOp(name="TestTeleOpMode", group="Linear Opmode")
 public class TestLinearOpMode extends LinearOpMode {
@@ -50,6 +55,9 @@ public class TestLinearOpMode extends LinearOpMode {
     private Servo claw = null;
     private Servo clawArm = null;
     private Servo foundGrabber = null;
+    private Servo capstoneArm = null;
+    private Servo capstoneHook = null;
+    private BNO055IMU imu = null;
 
     //booleans
     private boolean slowMode = false;
@@ -58,15 +66,17 @@ public class TestLinearOpMode extends LinearOpMode {
     private boolean reverseDrive = false;
 
     // Setup a variable for each drive wheel
-    private double frontRightPower;
-    private double frontLeftPower;
-    private double backLeftPower;
-    private double backRightPower;
-    private double intakePower;
-    private double liftPower;
-    private double clawPosition = 0.0;
+    private double frontRightPower = 0.0;
+    private double frontLeftPower = 0.0;
+    private double backLeftPower = 0.0;
+    private double backRightPower = 0.0;
+    private double intakePower = 0.0;
+    private double liftPower = 0.0;
+    private double clawPosition = 1.0;
     private double clawArmPosition = 0.0;
-    private double foundationPosition = 1.0;
+    private double foundationPosition = 0.65;
+    private double capstoneArmPosition = 0.0;
+    private double capstoneHookPosition = 0.0;
 
     //variable for the controllers
     private double turn;
@@ -74,6 +84,8 @@ public class TestLinearOpMode extends LinearOpMode {
     private double strafe;
     private double liftAmount;
 
+    //imu angles
+    private double horizontalAngle;
 
     public void runOpMode()
     {
@@ -91,6 +103,37 @@ public class TestLinearOpMode extends LinearOpMode {
         foundGrabber = hardwareMap.servo.get("foundGrabber");
         claw = hardwareMap.servo.get("claw");
         clawArm = hardwareMap.servo.get("clawArm");
+        capstoneArm = hardwareMap.servo.get("capstoneArm");
+        capstoneHook = hardwareMap.servo.get("capstoneHook");
+
+        //imu
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
+        parameters.calibrationDataFile = "BNO055IMUCalibration.json";
+        parameters.loggingEnabled      = true;
+        parameters.loggingTag          = "IMU";
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        imu.initialize(parameters);
+        //The REV Expansion hub is mounted vertically, so we have to flip the y and z axes.
+        byte AXIS_MAP_CONFIG_BYTE = 0x18;
+        byte AXIS_MAP_SIGN_BYTE = 0x1;
+
+        imu.write8(BNO055IMU.Register.OPR_MODE,BNO055IMU.SensorMode.CONFIG.bVal & 0x0F);
+        try {
+            Thread.sleep(100);
+        }catch(InterruptedException e)
+        {
+            Thread.currentThread().interrupt();
+        }
+        imu.write8(BNO055IMU.Register.AXIS_MAP_CONFIG,AXIS_MAP_CONFIG_BYTE & 0x0F);
+        imu.write8(BNO055IMU.Register.AXIS_MAP_SIGN,AXIS_MAP_SIGN_BYTE & 0x0F);
+        imu.write8(BNO055IMU.Register.OPR_MODE,BNO055IMU.SensorMode.IMU.bVal & 0x0F);
+        try {
+            Thread.sleep(100);
+        }catch(InterruptedException e)
+        {
+            Thread.currentThread().interrupt();
+        }
 
         // Most robots need the motor on one side to be reversed to drive forward
         // Reverse the motor that runs backwards when connected directly to the battery
@@ -120,7 +163,11 @@ public class TestLinearOpMode extends LinearOpMode {
             clawArm();
             checkReverseDrive();
             foundation();
+            capstoneThingy();
             telemetry();
+            telemetry.addData("fistAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).firstAngle);
+            telemetry.addData("secondAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).secondAngle);
+            telemetry.addData("thirdAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).thirdAngle);
             telemetry.addLine("Lift Position: "+lift.getCurrentPosition());
             telemetry.addData("Claw Position: ", claw.getPosition());
             telemetry.addData("Claw Arm Position: ", clawArm.getPosition());
@@ -135,11 +182,11 @@ public class TestLinearOpMode extends LinearOpMode {
     {
         if (gamepad2.a)
         {
-            clawPosition = 1.0;
+            clawPosition = 1.0; //let go
         }
         else if (gamepad2.b)
         {
-            clawPosition = 0.0;
+            clawPosition = 0.0; //grab
         }
 
         claw.setPosition(clawPosition);
@@ -150,13 +197,42 @@ public class TestLinearOpMode extends LinearOpMode {
      */
     private void clawArm ()
     {
+        boolean moveOutState = false;
+
         if(gamepad2.x)
         {
-            clawArmPosition = 1.0;
+            if (lift.getCurrentPosition() > 2300)
+            {
+                clawArmPosition = 1.0; //out
+            }
+            else
+            {
+                moveOutState = true;
+            }
         }
         else if (gamepad2.y)
         {
-            clawArmPosition = 0.0;
+            if (lift.getCurrentPosition() > 2300)
+            {
+                clawArmPosition = 0.0; //in
+            }
+        }
+
+        if (moveOutState)
+        {
+            //go up until 2300
+            if (lift.getCurrentPosition() < 2300)
+            {
+                lift.setPower (0.5);
+            }
+
+            if (lift.getCurrentPosition() > 2300) //it is above 2300
+            {
+                lift.setPower (0.0); //stop lift
+                clawArmPosition = 1.0; // out
+                moveOutState = false;
+            }
+
         }
 
         clawArm.setPosition(clawArmPosition);
@@ -173,7 +249,7 @@ public class TestLinearOpMode extends LinearOpMode {
         }
         else if (gamepad2.dpad_down)
         {
-            foundationPosition = 0.9;
+            foundationPosition = 0.65;
         }
 
         foundGrabber.setPosition(foundationPosition);
@@ -203,6 +279,30 @@ public class TestLinearOpMode extends LinearOpMode {
         {
             reverseDrive = true;
         }
+    }
+
+    private void capstoneThingy ()
+    {
+        if (gamepad2.dpad_left)
+        {
+            capstoneArmPosition = 0.0;
+        }
+        else
+        {
+            capstoneArmPosition = 1.0;
+        }
+
+        if (gamepad2.left_bumper && gamepad2.right_bumper)
+        {
+            capstoneHookPosition = 0.0;
+        }
+        else
+        {
+            capstoneHookPosition = 1.0;
+        }
+
+        capstoneArm.setPosition(capstoneArmPosition);
+        capstoneHook.setPosition(capstoneHookPosition);
     }
 
     /**
@@ -285,6 +385,15 @@ public class TestLinearOpMode extends LinearOpMode {
 
     private void lift ()
     {
+        if (gamepad2.left_stick_y == 0.0)
+        {
+            lift.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        }
+        else
+        {
+            lift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        }
+
         liftAmount = -gamepad2.right_stick_y;
         liftPower = liftCutoff(liftAmount);
         lift.setPower(liftPower);

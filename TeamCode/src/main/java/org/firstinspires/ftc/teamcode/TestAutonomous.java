@@ -29,6 +29,7 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -37,6 +38,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 
@@ -58,11 +62,13 @@ import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 
 public class TestAutonomous extends LinearOpMode {
     // Declare OpMode members.
-    private ElapsedTime runtime = new ElapsedTime();
-    private DcMotor frontLeft = null;
-    private DcMotor frontRight = null;
-    private DcMotor backLeft = null;
-    private DcMotor backRight = null;
+    protected ElapsedTime runtime = new ElapsedTime();
+    protected DcMotor frontLeft = null;
+    protected DcMotor frontRight = null;
+    protected DcMotor backLeft = null;
+    protected DcMotor backRight = null;
+
+    private BNO055IMU imu = null;
 
     //skystone names for object detection
     private static final String TFOD_MODEL_ASSET = "Skystone.tflite";
@@ -78,16 +84,7 @@ public class TestAutonomous extends LinearOpMode {
     private VuforiaLocalizer vuforia;
     private TFObjectDetector tfod;
 
-    // Setup a variable for each drive wheel
-    private double frontLeftPower = 0;
-    private double frontRightPower = 0;
-    private double backLeftPower = 0;
-    private double backRightPower = 0;
-
-    //variable for the controllers
-    private double turn = 0;
-    private double drive = 0;
-    private double strafe = 0;
+    private enum StartPosition {RED_BLOCKS, BLUE_BLOCKS, RED_BUILD, BLUE_BUILD};
 
     public void runOpMode()
     {
@@ -115,15 +112,91 @@ public class TestAutonomous extends LinearOpMode {
         backLeft.setDirection(DcMotor.Direction.FORWARD);
         backRight.setDirection(DcMotor.Direction.REVERSE);
 
+        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        //imu
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
+        parameters.calibrationDataFile = "BNO055IMUCalibration.json";
+        parameters.loggingEnabled      = true;
+        parameters.loggingTag          = "IMU";
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        imu.initialize(parameters);
+        //The REV Expansion hub is mounted vertically, so we have to flip the y and z axes.
+        byte AXIS_MAP_CONFIG_BYTE = 0x18;
+        byte AXIS_MAP_SIGN_BYTE = 0x1;
+
+        imu.write8(BNO055IMU.Register.OPR_MODE,BNO055IMU.SensorMode.CONFIG.bVal & 0x0F);
+        try {
+            Thread.sleep(100);
+        }catch(InterruptedException e)
+        {
+            Thread.currentThread().interrupt();
+        }
+        imu.write8(BNO055IMU.Register.AXIS_MAP_CONFIG,AXIS_MAP_CONFIG_BYTE & 0x0F);
+        imu.write8(BNO055IMU.Register.AXIS_MAP_SIGN,AXIS_MAP_SIGN_BYTE & 0x0F);
+        imu.write8(BNO055IMU.Register.OPR_MODE,BNO055IMU.SensorMode.IMU.bVal & 0x0F);
+        try {
+            Thread.sleep(100);
+        }catch(InterruptedException e)
+        {
+            Thread.currentThread().interrupt();
+        }
+
+        Drive drive = new Drive (frontRight, frontLeft, backRight, backLeft, telemetry);
+
+        boolean flag = true;
+        StartPosition pos = null;
+
+        while (flag)
+        {
+
+            if (gamepad1.dpad_up)
+            {
+                pos = StartPosition.BLUE_BUILD;
+                telemetry.addData("Position: ", "Blue Build");
+            }
+            else if (gamepad1.dpad_down)
+            {
+                pos = StartPosition.BLUE_BLOCKS;
+                telemetry.addData("Position: ", "Blue Blocks");
+            }
+            else if (gamepad1.y)
+            {
+                pos = StartPosition.RED_BUILD;
+                telemetry.addData("Position: ", "Red Build");
+            }
+            else if (gamepad1.a)
+            {
+                pos = StartPosition.RED_BLOCKS;
+                telemetry.addData("Position: ", "Red Blocks");
+            }
+
+            if (gamepad1.back)
+            {
+                flag = false;
+                telemetry.addLine("Start Position Set!");
+            }
+
+            if (opModeIsActive())
+            {
+                flag = false;
+                telemetry.addLine("Start Position NOT Set!");
+            }
+
+            telemetry.update();
+        }
+
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
         runtime.reset();
 
-        // run until the end of the match (driver presses STOP)
-        while (opModeIsActive())
-        {
+        //executeAutonomous(pos);
 
-        }
+        drive.turn(90, true, 0.5, imu);
     }
 
     //initializes vuforia localization engine
@@ -150,5 +223,40 @@ public class TestAutonomous extends LinearOpMode {
         tfodParameters.minimumConfidence = 0.8;
         tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
         tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT, LABEL_SECOND_ELEMENT);
+    }
+
+    private void executeAutonomous (StartPosition pos)
+    {
+        switch (pos)
+        {
+            case RED_BLOCKS: doRedBlock();
+                break;
+            case RED_BUILD: doRedBuild();
+                break;
+            case BLUE_BUILD: doBlueBuild();
+                break;
+            case BLUE_BLOCKS: doBlueBlocks();
+                break;
+        }
+    }
+
+    private void doRedBlock ()
+    {
+
+    }
+
+    private void doRedBuild ()
+    {
+
+    }
+
+    private void doBlueBuild ()
+    {
+
+    }
+
+    private void doBlueBlocks ()
+    {
+
     }
 }
