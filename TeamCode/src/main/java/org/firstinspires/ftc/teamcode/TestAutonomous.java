@@ -84,6 +84,13 @@ public class TestAutonomous extends LinearOpMode {
     private VuforiaLocalizer vuforia;
     private TFObjectDetector tfod;
 
+    //constants
+    final float ENCODER_TICKS_PER_REVOLUTION = 537.6f;
+    final float CIRCUMFERENCE_IN_CM = (float) Math.PI * 10.0f; //diameter is 100mm
+    final float TICKS_PER_CM = ENCODER_TICKS_PER_REVOLUTION/CIRCUMFERENCE_IN_CM;
+    final float STRAFE_TICKS_PER_CM = 35.77f;
+    final float TICKS_PER_DEGREE = 4f;
+
     private enum StartPosition {RED_BLOCKS, BLUE_BLOCKS, RED_BUILD, BLUE_BUILD};
 
     public void runOpMode()
@@ -96,14 +103,25 @@ public class TestAutonomous extends LinearOpMode {
             telemetry.addData("Sorry!", "This device is not compatible with TFOD");
         }
 
-        telemetry.addData("Status", "Initialized");
-        telemetry.update();
+
 
         // Initialize the hardware variables.
         frontLeft  = hardwareMap.get(DcMotor.class, "frontLeft");
         frontRight = hardwareMap.get(DcMotor.class, "frontRight");
         backLeft = hardwareMap.get(DcMotor.class, "backLeft");
         backRight = hardwareMap.get(DcMotor.class, "backRight");
+
+        // reset encoders
+        frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        backLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        backRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        // run using encoder
+        frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         // Most robots need the motor on one side to be reversed to drive forward
         // Reverse the motor that runs backwards when connected directly to the battery
@@ -145,8 +163,6 @@ public class TestAutonomous extends LinearOpMode {
         {
             Thread.currentThread().interrupt();
         }
-
-        Drive drive = new Drive (frontRight, frontLeft, backRight, backLeft, telemetry);
 
         boolean flag = true;
         StartPosition pos = null;
@@ -190,13 +206,17 @@ public class TestAutonomous extends LinearOpMode {
             telemetry.update();
         }
 
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
         runtime.reset();
 
         //executeAutonomous(pos);
 
-        drive.turn(90, true, 0.5, imu);
+        strafe(150, true, 0.5);
+        turn(90, true, 0.5, imu);
     }
 
     //initializes vuforia localization engine
@@ -259,4 +279,137 @@ public class TestAutonomous extends LinearOpMode {
     {
 
     }
+
+
+    public void drive (double distanceCM, double power)
+    {
+        double startPosition = frontLeft.getCurrentPosition();
+        double targetPosition = startPosition + distanceCM*TICKS_PER_CM;
+        telemetry.addData("startPosition", startPosition);
+        telemetry.addData("Front Left Position: ", frontLeft.getCurrentPosition());
+        telemetry.addData("Target position", targetPosition);
+        telemetry.update();
+        sleep(5000);
+
+        if (distanceCM > 0)
+        {
+            while (opModeIsActive() && frontLeft.getCurrentPosition() < targetPosition)
+            {
+                frontRight.setPower(power);
+                frontLeft.setPower(power);
+                backRight.setPower(power);
+                backLeft.setPower(power);
+                telemetry.addData("startPosition", startPosition);
+                telemetry.addData("Front Left Position: ", frontLeft.getCurrentPosition());
+                telemetry.addData("Target position", targetPosition);
+                telemetry.update();
+            }
+        }
+        else
+        {
+            while (opModeIsActive() && frontLeft.getCurrentPosition() > targetPosition)
+            {
+                frontRight.setPower(-power);
+                frontLeft.setPower(-power);
+                backRight.setPower(-power);
+                backLeft.setPower(-power);
+                telemetry.addData("Front Left Position: ", frontLeft.getCurrentPosition());
+                telemetry.update();
+            }
+        }
+
+        ctrlAltDel();
+    }
+
+    public void strafe (double distanceCM, boolean right, double power)
+    {
+        double currentPosition = frontLeft.getCurrentPosition();
+        double targetPosition;
+
+        if (right)
+        {
+            targetPosition = currentPosition + distanceCM*STRAFE_TICKS_PER_CM;
+
+            while (opModeIsActive() && frontLeft.getCurrentPosition() < targetPosition)
+            {
+                frontRight.setPower(-power);
+                frontLeft.setPower(power);
+                backRight.setPower(power);
+                backLeft.setPower(-power);
+                telemetry.addData("Front Left Position: ", frontLeft.getCurrentPosition());
+                telemetry.update();
+            }
+        }
+        else
+        {
+            targetPosition = currentPosition - distanceCM*STRAFE_TICKS_PER_CM;
+
+            while (opModeIsActive() && frontLeft.getCurrentPosition() > targetPosition)
+            {
+                frontRight.setPower(power);
+                frontLeft.setPower(-power);
+                backRight.setPower(-power);
+                backLeft.setPower(power);
+                telemetry.addData("Front Left Position: ", frontLeft.getCurrentPosition());
+                telemetry.update();
+            }
+        }
+
+        ctrlAltDel();
+    }
+
+    public void turn (float angle, boolean CCW, double powah, BNO055IMU imu)
+    {
+        //#define powah power;
+        double currentAngle = imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).secondAngle;
+        double targetAngle;
+
+        if (CCW)
+        {
+            targetAngle = currentAngle - angle;
+
+            while (opModeIsActive() && currentAngle > targetAngle)
+            {
+                frontRight.setPower(powah);
+                frontLeft.setPower(-powah);
+                backRight.setPower(powah);
+                backLeft.setPower(-powah);
+                telemetry.addData("fistAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).firstAngle);
+                telemetry.addData("secondAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).secondAngle);
+                telemetry.addData("thirdAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).thirdAngle);
+                telemetry.update();
+
+                currentAngle = imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).secondAngle;
+            }
+        }
+        else
+        {
+            targetAngle = currentAngle + angle;
+
+            while (opModeIsActive() && currentAngle < targetAngle)
+            {
+                frontRight.setPower(-powah);
+                frontLeft.setPower(powah);
+                backRight.setPower(-powah);
+                backLeft.setPower(powah);
+                telemetry.addData("fistAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).firstAngle);
+                telemetry.addData("secondAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).secondAngle);
+                telemetry.addData("thirdAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).thirdAngle);
+                telemetry.update();
+
+                currentAngle = imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).secondAngle;
+            }
+        }
+
+        ctrlAltDel();
+    }
+
+    public void ctrlAltDel ()
+    {
+        frontRight.setPower(0);
+        frontLeft.setPower(0);
+        backRight.setPower(0);
+        backLeft.setPower(0);
+    }
+
 }

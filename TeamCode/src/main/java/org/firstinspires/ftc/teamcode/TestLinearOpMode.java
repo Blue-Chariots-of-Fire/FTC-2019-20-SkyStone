@@ -165,6 +165,7 @@ public class TestLinearOpMode extends LinearOpMode {
             foundation();
             capstoneThingy();
             telemetry();
+            /*
             telemetry.addData("fistAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).firstAngle);
             telemetry.addData("secondAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).secondAngle);
             telemetry.addData("thirdAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).thirdAngle);
@@ -172,6 +173,13 @@ public class TestLinearOpMode extends LinearOpMode {
             telemetry.addData("Claw Position: ", claw.getPosition());
             telemetry.addData("Claw Arm Position: ", clawArm.getPosition());
             telemetry.addData("Foundation Position: ", foundGrabber.getPosition());
+             */
+            telemetry.addData("secondAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).secondAngle);
+            telemetry.addData("frontLeftPosition: ", frontLeft.getCurrentPosition());
+            telemetry.addData("frontRightPosition: ", frontRight.getCurrentPosition());
+            telemetry.addData("backLeftPosition: ", backLeft.getCurrentPosition());
+            telemetry.addData("backRightPosition: ", backRight.getCurrentPosition());
+            telemetry.update();
         }
     }
 

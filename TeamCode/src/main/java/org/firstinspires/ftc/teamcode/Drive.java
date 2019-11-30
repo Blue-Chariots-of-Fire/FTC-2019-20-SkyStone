@@ -1,3 +1,4 @@
+
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
@@ -51,6 +52,9 @@ public class Drive
                 frontLeft.setPower(power);
                 backRight.setPower(power);
                 backLeft.setPower(power);
+                telemetry.addData("Front Left Position: ", frontLeft.getCurrentPosition());
+                telemetry.addData("Target position", targetPosition);
+                telemetry.update();
             }
         }
         else
@@ -61,6 +65,8 @@ public class Drive
                 frontLeft.setPower(-power);
                 backRight.setPower(-power);
                 backLeft.setPower(-power);
+                telemetry.addData("Front Left Position: ", frontLeft.getCurrentPosition());
+                telemetry.update();
             }
         }
 
@@ -80,6 +86,8 @@ public class Drive
                 frontLeft.setPower(-power);
                 backRight.setPower(-power);
                 backLeft.setPower(power);
+                telemetry.addData("Front Left Position: ", frontLeft.getCurrentPosition());
+                telemetry.update();
             }
         }
         else
@@ -90,6 +98,8 @@ public class Drive
                 frontLeft.setPower(power);
                 backRight.setPower(power);
                 backLeft.setPower(-power);
+                telemetry.addData("Front Left Position: ", frontLeft.getCurrentPosition());
+                telemetry.update();
             }
         }
 
@@ -115,6 +125,7 @@ public class Drive
                 telemetry.addData("fistAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).firstAngle);
                 telemetry.addData("secondAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).secondAngle);
                 telemetry.addData("thirdAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).thirdAngle);
+                telemetry.update();
             }
         }
         else
@@ -130,6 +141,7 @@ public class Drive
                 telemetry.addData("fistAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).firstAngle);
                 telemetry.addData("secondAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).secondAngle);
                 telemetry.addData("thirdAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).thirdAngle);
+                telemetry.update();
             }
         }
 
