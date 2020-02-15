@@ -30,18 +30,22 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
-
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cColorSensor;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 @TeleOp(name="TestTeleOpMode", group="Linear Opmode")
+
 public class TestLinearOpMode extends LinearOpMode {
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
@@ -52,12 +56,31 @@ public class TestLinearOpMode extends LinearOpMode {
     private DcMotor intakeLeft = null;
     private DcMotor intakeRight = null;
     private DcMotor lift = null;
+    private DcMotor rearEncoder = null;
     private Servo claw = null;
     private Servo clawArm = null;
     private Servo foundGrabber = null;
     private Servo capstoneArm = null;
     private Servo capstoneHook = null;
     private BNO055IMU imu = null;
+    private Orientation lastAngles = new Orientation();
+    double globalAngle;
+    private ModernRoboticsI2cColorSensor colorSensor = null;
+
+    private Odometry localizer = null;
+
+
+    // Constants for motor/servo positions
+    private static final double clawArmIn = 0.0; //in
+    private static final double clawArmOut = 1.0; //in
+    private static final double foundationUp = 0.65; //up
+    private static final double foundationDown = 0.0; //down
+    private static final double clawClosed = 0.0; //closed
+    private static final double clawOpen = 1.0; //open
+    private static final double capstoneArmOut = 0.0; //out
+    private static final double capstoneArmIn = 1.0; //in
+    private static final double capstoneHookHooked = 0.0; //hooked
+    private static final double capstoneHookUnHooked = 1.0; //unhooked
 
     //booleans
     private boolean slowMode = false;
@@ -72,17 +95,23 @@ public class TestLinearOpMode extends LinearOpMode {
     private double backRightPower = 0.0;
     private double intakePower = 0.0;
     private double liftPower = 0.0;
-    private double clawPosition = 1.0;
-    private double clawArmPosition = 0.0;
-    private double foundationPosition = 0.65;
-    private double capstoneArmPosition = 0.0;
-    private double capstoneHookPosition = 0.0;
+    private double clawPosition = clawOpen; //open
+    private double clawArmPosition = clawArmIn; //in
+    private double foundationPosition = foundationUp; //up
+    private double capstoneArmPosition = capstoneArmOut;
+    private double capstoneHookPosition = capstoneHookHooked;
 
-    //variable for the controllers
+    //variable for the controllers input
     private double turn;
     private double drive;
     private double strafe;
     private double liftAmount;
+
+    //lift state machine booleans
+    boolean moveUp = false;
+    boolean moveOut = false;
+    boolean moveIn = false;
+    boolean clawCanTurn = false;
 
     //imu angles
     private double horizontalAngle;
@@ -100,20 +129,36 @@ public class TestLinearOpMode extends LinearOpMode {
         intakeLeft = hardwareMap.get(DcMotor.class, "intakeLeft");
         intakeRight = hardwareMap.get (DcMotor.class, "intakeRight");
         lift = hardwareMap.get(DcMotor.class, "lift");
+        rearEncoder = hardwareMap.get(DcMotor.class, "rearEncoder");
         foundGrabber = hardwareMap.servo.get("foundGrabber");
         claw = hardwareMap.servo.get("claw");
         clawArm = hardwareMap.servo.get("clawArm");
         capstoneArm = hardwareMap.servo.get("capstoneArm");
         capstoneHook = hardwareMap.servo.get("capstoneHook");
+        colorSensor = hardwareMap.get(ModernRoboticsI2cColorSensor.class, "colorSensor");
 
         //imu
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
         parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
         parameters.calibrationDataFile = "BNO055IMUCalibration.json";
-        parameters.loggingEnabled      = true;
-        parameters.loggingTag          = "IMU";
+        parameters.loggingEnabled      = false;
         imu = hardwareMap.get(BNO055IMU.class, "imu");
         imu.initialize(parameters);
+
+        telemetry.addData("Mode", "calibrating...");
+        telemetry.update();
+
+        // make sure the imu gyro is calibrated before continuing.
+        while (!isStopRequested() && !imu.isGyroCalibrated())
+        {
+            sleep(50);
+            idle();
+        }
+
+        telemetry.addData("Mode", "waiting for start");
+        telemetry.addData("imu calib status", imu.getCalibrationStatus().toString());
+        telemetry.update();
+
         //The REV Expansion hub is mounted vertically, so we have to flip the y and z axes.
         byte AXIS_MAP_CONFIG_BYTE = 0x18;
         byte AXIS_MAP_SIGN_BYTE = 0x1;
@@ -145,7 +190,10 @@ public class TestLinearOpMode extends LinearOpMode {
         intakeRight.setDirection(DcMotor.Direction.REVERSE);
         lift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         lift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        lift.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         lift.setDirection(DcMotor.Direction.FORWARD);
+
+        localizer = new Odometry(intakeRight, intakeLeft, rearEncoder);
 
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
@@ -165,21 +213,10 @@ public class TestLinearOpMode extends LinearOpMode {
             foundation();
             capstoneThingy();
             telemetry();
-            /*
-            telemetry.addData("fistAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).firstAngle);
-            telemetry.addData("secondAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).secondAngle);
-            telemetry.addData("thirdAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).thirdAngle);
-            telemetry.addLine("Lift Position: "+lift.getCurrentPosition());
-            telemetry.addData("Claw Position: ", claw.getPosition());
-            telemetry.addData("Claw Arm Position: ", clawArm.getPosition());
-            telemetry.addData("Foundation Position: ", foundGrabber.getPosition());
-             */
-            telemetry.addData("secondAngle: ", imu.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).secondAngle);
-            telemetry.addData("frontLeftPosition: ", frontLeft.getCurrentPosition());
-            telemetry.addData("frontRightPosition: ", frontRight.getCurrentPosition());
-            telemetry.addData("backLeftPosition: ", backLeft.getCurrentPosition());
-            telemetry.addData("backRightPosition: ", backRight.getCurrentPosition());
-            telemetry.update();
+            if (gamepad1.a)
+            {
+                resetAngle();
+            }
         }
     }
 
@@ -205,42 +242,50 @@ public class TestLinearOpMode extends LinearOpMode {
      */
     private void clawArm ()
     {
-        boolean moveOutState = false;
-
         if(gamepad2.x)
         {
-            if (lift.getCurrentPosition() > 2300)
-            {
-                clawArmPosition = 1.0; //out
-            }
-            else
-            {
-                moveOutState = true;
-            }
+            moveUp = true;
+            moveOut = true;
         }
         else if (gamepad2.y)
         {
-            if (lift.getCurrentPosition() > 2300)
+            moveUp = true;
+            moveIn = true;
+        }
+
+        if (moveUp)
+        {
+            if (lift.getCurrentPosition() < 2200)
             {
-                clawArmPosition = 0.0; //in
+                lift.setPower(1.0);
+            }
+            else
+            {
+                lift.setPower(0.0);
+            }
+
+            if (lift.getCurrentPosition() > 2200)
+            {
+                moveUp = false;
+                clawCanTurn = true;
             }
         }
 
-        if (moveOutState)
+        if (clawCanTurn)
         {
-            //go up until 2300
-            if (lift.getCurrentPosition() < 2300)
+            if (moveOut)
             {
-                lift.setPower (0.5);
+                clawArmPosition = 1.0; //out
+                moveOut = false;
+                clawCanTurn = false;
             }
 
-            if (lift.getCurrentPosition() > 2300) //it is above 2300
+            if (moveIn)
             {
-                lift.setPower (0.0); //stop lift
-                clawArmPosition = 1.0; // out
-                moveOutState = false;
+                clawArmPosition = 0.0; //in
+                moveIn = false;
+                clawCanTurn = false;
             }
-
         }
 
         clawArm.setPosition(clawArmPosition);
@@ -393,18 +438,12 @@ public class TestLinearOpMode extends LinearOpMode {
 
     private void lift ()
     {
-        if (gamepad2.left_stick_y == 0.0)
-        {
-            lift.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        }
-        else
-        {
-            lift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        }
-
         liftAmount = -gamepad2.right_stick_y;
         liftPower = liftCutoff(liftAmount);
-        lift.setPower(liftPower);
+        if (!moveUp)
+        {
+            lift.setPower(liftPower);
+        }
     }
 
     private void intake ()
@@ -426,13 +465,56 @@ public class TestLinearOpMode extends LinearOpMode {
         intakeLeft.setPower(intakePower);
         intakeRight.setPower(intakePower);
     }
+    /**
+     * Resets the cumulative angle tracking to zero.
+     */
+    private void resetAngle()
+    {
+        lastAngles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+
+        globalAngle = 0;
+    }
+
+    /**
+     * Get current cumulative angle rotation from last reset.
+     * @return Angle in degrees. + = left, - = right.
+     */
+    private double getAngle()
+    {
+        // We experimentally determined the Z axis is the axis we want to use for heading angle.
+        // We have to process the angle because the imu works in euler angles so the Z axis is
+        // returned as 0 to +180 or 0 to -180 rolling back to -179 or +179 when rotation passes
+        // 180 degrees. We detect this transition and track the total cumulative angle of rotation.
+
+        Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+
+        double deltaAngle = angles.firstAngle - lastAngles.firstAngle;
+
+        if (deltaAngle < -180)
+            deltaAngle += 360;
+        else if (deltaAngle > 180)
+            deltaAngle -= 360;
+
+        globalAngle += deltaAngle;
+
+        lastAngles = angles;
+
+        return globalAngle;
+    }
 
     //adds telemetry info to the driver station
     private void telemetry ()
     {
         // Show the elapsed game time and wheel power.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
-        telemetry.addData("Motors", "left (%.2f), right (%.2f)", frontLeftPower, frontRightPower);
+        telemetry.addData("second angle", getAngle());
+        telemetry.addData("1 imu heading", lastAngles.firstAngle);
+        telemetry.addData("2 global heading", globalAngle);
+        telemetry.addData("Red", colorSensor.red());
+        telemetry.addData("Green", colorSensor.green());
+        telemetry.addData("Blue", colorSensor.blue());
+        telemetry.addData("Alpha", colorSensor.alpha());
+        telemetry.addData("ARGB", colorSensor.argb());
         telemetry.update();
     }
 }
