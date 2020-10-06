@@ -121,8 +121,7 @@ class Odometry
         angle += (leftCycleDistance - rightCycleDistance)/ENCODER_DISTANCE;
         deltaAngle = (angle - oldAngle);
 
-        rearOffset = deltaAngle*(REAR_OFFSET*TICKS_PER_MM);
-        backCycleDistance = (-(backPosition - oldBackPosition) - rearOffset)*MM_PER_TICKS;
+        backCycleDistance = (-(backPosition - oldBackPosition))*MM_PER_TICKS;
 
         xPosition += cycleDistance*sine(angle) + backCycleDistance*cosine(angle);
         yPosition +=cycleDistance*cosine(angle) + backCycleDistance*sine(angle);
@@ -187,6 +186,28 @@ class Odometry
     void resetAngle (double angle)
     {
         this.angle = angle;
+    }
+
+    void resetPosition()
+    {
+        xPosition = 0;
+        yPosition = 0;
+        angle = 0;
+
+        oldxPosition = 0;
+        oldyPosition = 0;
+        oldAngle = 0;
+    }
+
+    void resetPosition(double x, double y, double angle)
+    {
+        xPosition = x;
+        yPosition = y;
+        this.angle = angle;
+
+        oldxPosition = x;
+        oldyPosition = y;
+        oldAngle = angle;
     }
 
     double getxDeriv (int deriv)

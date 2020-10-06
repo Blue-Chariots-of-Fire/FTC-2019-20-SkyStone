@@ -9,7 +9,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import static org.firstinspires.ftc.teamcode.RobotConstants.*;
 
 @Autonomous(name="Blue Close", group="Linear OpMode")
-public class TestAutoOpMode extends LinearOpMode
+public class FoundationBlueClose extends LinearOpMode
 {
     private DcMotor frontLeft = null;                   //front left motor
     private DcMotor frontRight = null;                  //front right motor
@@ -101,7 +101,7 @@ public class TestAutoOpMode extends LinearOpMode
         drive (0, 0, -90, true);
 
         //push into wall
-        driveWithoutAccuracy (-80, 1);
+        driveWithoutAccuracy (-90, 1);
 
         //let go of foundation
         leftFoundGrabber.setPosition(LEFT_FOUND_UP);
@@ -111,7 +111,7 @@ public class TestAutoOpMode extends LinearOpMode
         localization.resetAngle();
 
         //drive away from the foundation
-        drive (62, 80, 0, false);
+        drive (90, 55, 0, false);
 
         //go to the line with sensor
         driveUntilLine("blue", 0.4);

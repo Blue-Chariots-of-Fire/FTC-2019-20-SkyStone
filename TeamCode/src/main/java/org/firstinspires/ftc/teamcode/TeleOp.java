@@ -61,7 +61,6 @@ public class TeleOp extends LinearOpMode
     private Servo blockGrabber = null;                  //block grabber servo
     private Servo leftFoundGrabber = null;              //left foundation grabber
     private Servo rightFoundGrabber = null;             //right foundation grabber
-    private BNO055IMU imu = null;                       //REV Hub internal motion unit
 
     private ArrayList <ControllerState> controllerStates;
 

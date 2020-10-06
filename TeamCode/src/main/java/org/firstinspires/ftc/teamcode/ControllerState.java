@@ -158,7 +158,6 @@ public class ControllerState
                 boo(a) + boo(b) + boo(x) + boo(y) +
                 boo(leftBumper) + boo(rightBumper) +
                 boo(rsButton) + boo(lsButton) + "\n";
-
         return out;
     }
 

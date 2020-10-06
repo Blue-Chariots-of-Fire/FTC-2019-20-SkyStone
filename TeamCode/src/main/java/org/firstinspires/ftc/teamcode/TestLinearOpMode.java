@@ -45,7 +45,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 @TeleOp(name="TestTeleOpMode", group="Linear Opmode")
-
+@Disabled
 public class TestLinearOpMode extends LinearOpMode {
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();

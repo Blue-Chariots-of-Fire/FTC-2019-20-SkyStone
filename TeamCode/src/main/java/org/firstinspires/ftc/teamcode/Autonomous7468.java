@@ -234,7 +234,8 @@ public class Autonomous7468 extends LinearOpMode {
         // Reverse the motor that runs backwards when connected directly to the battery
         frontLeft.setDirection(DcMotor.Direction.REVERSE);
         frontRight.setDirection(DcMotor.Direction.FORWARD);
-        backLeft.setDirection(DcMotor.Direction.REVERSE);
+        backLeft.setDirection(DcMotor.Direction.FORWARD
+        );
         backRight.setDirection(DcMotor.Direction.FORWARD);
         lift.setDirection(DcMotor.Direction.FORWARD);
 

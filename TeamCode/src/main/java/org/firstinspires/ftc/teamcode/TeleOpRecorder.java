@@ -30,6 +30,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -60,7 +61,8 @@ import static org.firstinspires.ftc.teamcode.RobotConstants.RIGHT_FOUND_DOWN;
 import static org.firstinspires.ftc.teamcode.RobotConstants.RIGHT_FOUND_UP;
 import static org.firstinspires.ftc.teamcode.RobotConstants.SLOW_MODE_DIVISOR;
 
-@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name="TeleOp", group="Linear Opmode")
+@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name="TeleOpRecorder", group="Linear Opmode")
+@Disabled
 public class TeleOpRecorder extends OpMode
 {
     //Declare OpMode members////////////////////

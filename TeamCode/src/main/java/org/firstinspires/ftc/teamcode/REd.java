@@ -166,7 +166,7 @@ public class REd extends LinearOpMode
 
             xError = notNaN((dx)/dxTotal);
             yError = notNaN((dy)/dyTotal);
-            angleError = notNaN((dA)/ (isTurning? Math.abs(dATotal) : Math.PI/2));
+            angleError = notNaN((dA)/ (isTurning? Math.abs(dATotal) : Math.PI/3));
 
             //
             driveInput = y > 0 ? yError : -yError;//*cosine(Math.toRadians(angle)) + xError*sine(Math.toRadians(angle));

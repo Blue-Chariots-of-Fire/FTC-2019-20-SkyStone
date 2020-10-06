@@ -9,6 +9,7 @@ public final class RobotConstants
     static final double CLAW_OPEN               = 1.0;   //open
     static final double CAPSTONE_ARM_OUT        = 0.9;   //out
     static final double CAPSTONE_ARM_IN         = 0.0;   //in
+    static final double CAPSTONE_ARM_PARKED     = 0.4;   //parked
     static final double CAPSTONE_HOOK_HOOKED    = 1.0;   //hooked
     static final double CAPSTONE_HOOK_UN_HOOKED = 0.0;   //unhooked
     static final double BLOCK_LIFTER_UP         = 0.28;  //TODO: Check actual
@@ -20,6 +21,7 @@ public final class RobotConstants
     static final double RIGHT_FOUND_DOWN        = 1.0;   //down
     static final double LEFT_FOUND_UP           = 0.0;   //up
     static final double LEFT_FOUND_DOWN         = 1.0;   //down
+    static final double BLOCK_LIFTER_LIFTED     = 0.19;  //lifted
 
     //Threshold constants/////////////////////////
     static final double CLAW_HIGHEST_POSITION = 2200;    //lift must be this high to turn
@@ -28,13 +30,16 @@ public final class RobotConstants
     static final double SLOW_MODE_DIVISOR = 3;           //slow mode slows this much
 
     final static double MIN_ANGLE_ERROR = 0.01;
-    final static double MIN_TURN_PWR = 0.15;
+    final static double MIN_TURN_PWR = 0.17;
 
     //constants
     final static float ENCODER_TICKS_PER_REVOLUTION = 383.6f;
     final static float CIRCUMFERENCE_IN_CM = (float) Math.PI * 10.0f; //diameter is 100mm
     final static float WHEEL_GEAR_REDUCTION = 2f;
     final static float TICKS_PER_CM =  (ENCODER_TICKS_PER_REVOLUTION/CIRCUMFERENCE_IN_CM) * WHEEL_GEAR_REDUCTION; //Experimental Value: 33.69411764705882
+
+    //Skystone position types
+    enum SkystonePosition {LEFT, RIGHT, CENTER, NONE}
 
     static double sine (double angle)
     {
